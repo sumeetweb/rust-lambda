@@ -12,17 +12,35 @@ async fn function_handler(event: Request) -> Result<Response<Body>, Error> {
         .query_string_parameters_ref()
         .and_then(|params| params.first("name"))
         .unwrap_or("world");
-    let message = format!("Hello {who}, this is an AWS Lambda HTTP request");
+    let message = format!("Hello {who}, this is an AWS Lambda HTTP request. You will only see this message if your authentication token is correct.");
 
     let keyset = KeySet::new("ap-south-1", "ap-south-1_uU90KbaQr");
-    // TODO: Error handling
+    // Error handling
+    if keyset.is_err() {
+        let resp : Response<Body> = Response::builder()
+            .status(200)
+            .header("content-type", "text/html")
+            .body(String::from("Error: Loading JWT Keys").into())
+            .map_err(Box::new)?;
+        return Ok(resp);
+    }
+
     let keyset = keyset.ok().unwrap();
 
     let verifier = keyset.new_id_token_verifier(&["78dd765hhdjrutde2vf7g1v73d"]).build()?;
     // Get the token from the request header Authorization and verify it
     let token_str = event.headers().get("Authorization").unwrap().to_str().unwrap();
     let verify_res = keyset.verify(&token_str, &verifier).await;
-    // TODO: Error handling
+    // Error handling
+    if verify_res.is_err() {
+        let resp : Response<Body> = Response::builder()
+            .status(200)
+            .header("content-type", "text/html")
+            .body(String::from("Error: Auth Token").into())
+            .map_err(Box::new)?;
+        return Ok(resp);
+    }
+
     verify_res.ok().unwrap();
 
     // Return something that implements IntoResponse.
