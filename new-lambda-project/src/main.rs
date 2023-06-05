@@ -7,6 +7,7 @@ pub type LambdaError = Box<dyn std::error::Error + Send + Sync + 'static>;
 /// Write your code inside it.
 /// There are some code example in the following URLs:
 /// - https://github.com/awslabs/aws-lambda-rust-runtime/tree/main/examples
+
 async fn function_handler(event: Request) -> Result<Response<Body>, LambdaError> {
     // Extract some useful information from the request
     let who = event
@@ -15,11 +16,16 @@ async fn function_handler(event: Request) -> Result<Response<Body>, LambdaError>
         .unwrap_or("world");
     let message = format!("Hello {who}, this is an AWS Lambda HTTP request");
 
-    let keyset = KeySet::new("ap-south-1", "ap-south-1_uU90KbaQr")?;
+    let keyset = KeySet::new("ap-south-1", "ap-south-1_uU90KbaQr");
+    // TODO: Error handling
+    let keyset = keyset.ok().unwrap();
+
     let verifier = keyset.new_id_token_verifier(&["78dd765hhdjrutde2vf7g1v73d"]).build()?;
     // Get the token from the request header Authorization and verify it
     let token_str = event.headers().get("Authorization").unwrap().to_str().unwrap();
-    keyset.verify(&token_str, &verifier).await?;
+    let verify_res = keyset.verify(&token_str, &verifier).await;
+    // TODO: Error handling
+    verify_res.ok().unwrap();
 
     // Return something that implements IntoResponse.
     // It will be serialized to the right response event automatically by the runtime
