@@ -15,7 +15,7 @@ async fn function_handler(event: Request) -> Result<Response<Body>, Error> {
     let message = format!("Hello {who}, this is an AWS Lambda HTTP request. You will only see this message if your authentication token is correct.");
 
     let keyset = KeySet::new("ap-south-1", "ap-south-1_uU90KbaQr");
-    // Error handling
+    // Error handling for failed JWT keyset loading
     if keyset.is_err() {
         let resp : Response<Body> = Response::builder()
             .status(200)
@@ -29,9 +29,19 @@ async fn function_handler(event: Request) -> Result<Response<Body>, Error> {
 
     let verifier = keyset.new_id_token_verifier(&["78dd765hhdjrutde2vf7g1v73d"]).build()?;
     // Get the token from the request header Authorization and verify it
-    let token_str = event.headers().get("Authorization").unwrap().to_str().unwrap();
+    let token_str = event.headers().get("Authorization");
+    // Error handling for missing JWT token
+    if token_str.is_none() {
+        let resp : Response<Body> = Response::builder()
+            .status(200)
+            .header("content-type", "text/html")
+            .body(String::from("Error: No Auth Token").into())
+            .map_err(Box::new)?;
+        return Ok(resp);
+    }
+    let token_str = token_str.unwrap().to_str().unwrap();
     let verify_res = keyset.verify(&token_str, &verifier).await;
-    // Error handling
+    // Error handling for failed JWT verification
     if verify_res.is_err() {
         let resp : Response<Body> = Response::builder()
             .status(200)
