@@ -29,7 +29,8 @@ async fn function_handler(event: Request) -> Result<Response<Body>, Error> {
 
     let verifier = keyset.new_id_token_verifier(&["78dd765hhdjrutde2vf7g1v73d"]).build()?;
     // Get the token from the request header Authorization and verify it
-    let token_str = event.headers().get("Authorization");
+    let token_str = event.headers().get("x-authorization");
+    println!("{:?}", event.headers());
     // Error handling for missing JWT token
     if token_str.is_none() {
         let resp : Response<Body> = Response::builder()
